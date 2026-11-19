@@ -1,0 +1,74 @@
+
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      error: "Método não permitido"
+    });
+  }
+
+  try {
+    const { message } = req.body || {};
+
+    if (!message || typeof message !== "string") {
+      return res.status(400).json({
+        error: "Envie uma mensagem válida."
+      });
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(500).json({
+        error: "Chave da inteligência artificial não configurada."
+      });
+    }
+
+    const response = await fetch(
+      "https://api.openai.com/v1/responses",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "gpt-5.5",
+          instructions: `
+Você é o YOJENIX, um atendente virtual
+inteligente de uma loja de roupas.
+
+Suas funções:
+- Atender clientes com educação.
+- Responder dúvidas sobre produtos.
+- Ajudar nas escolhas de roupas.
+- Informar preços quando fornecidos.
+- Auxiliar nas vendas.
+- Ser simpático, natural e objetivo.
+
+Nunca invente preços ou estoque.
+Quando não souber uma informação,
+avise que precisa confirmar.
+Fale sempre em português brasileiro.
+          `,
+          input: message
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error: "Erro ao consultar a inteligência artificial."
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      reply: data.output_text
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      error: "Erro interno do YOJENIX."
+    });
+  }
+}
